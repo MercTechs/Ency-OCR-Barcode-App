@@ -1,0 +1,24 @@
+[project]
+name = "ocr-with-hatchet"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "asyncpg>=0.30.0",
+    "fastapi[standard]>=0.115.12",
+    "hatchet>=1.4.0",
+    "hatchet-sdk>=1.10.1",
+    "llava>=0.0.1.dev0",
+    "marker-pdf",
+    "ocrmypdf>=16.10.2",
+    "openai>=1.79.0",
+    "pillow>=10.1.0",
+    "psycopg2-binary>=2.9.10",
+    "pytesseract>=0.3.13",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.26.0",
+    "requests>=2.32.4",
+    "sqlmodel>=0.0.24",
+    "streamlit>=1.46.0",
+]
