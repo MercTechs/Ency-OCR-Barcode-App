@@ -1,4 +1,4 @@
-from llm_singleton import LLMSingleton
+from llm.llm_singleton import LLMSingleton
 from marker.converters.table import TableConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered

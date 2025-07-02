@@ -5,7 +5,7 @@ from marker.converters.table import TableConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from dotenv import load_dotenv
-from prompts import create_extract_nutrition_prompt
+from llm.prompts import create_extract_nutrition_prompt
 
 load_dotenv()
 
