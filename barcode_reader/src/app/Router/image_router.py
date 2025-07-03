@@ -18,8 +18,8 @@ async def upload_image(file: UploadFile, image_service: ImageService = Depends(g
 @router.get("/read-barcode/")
 async def read_barcode(file_path: str, image_service: ImageService = Depends(get_image_service)):
     try:
-        barcode_value = image_service.read_barcode(image_path=file_path)
-        return {"barcode_value": barcode_value}
+        barcodes = image_service.read_barcode(image_path=file_path)
+        return {"barcodes": barcodes}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     

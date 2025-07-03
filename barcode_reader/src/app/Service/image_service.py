@@ -2,7 +2,7 @@ from pathlib import Path
 from fastapi import UploadFile
 import cv2
 from pyzbar import pyzbar
-
+from Schemas.barcode_schema import BarcodeSchema
 
 class ImageService:
     def __init__(self):
@@ -16,22 +16,20 @@ class ImageService:
             f.write(file.file.read())
         return str(file_path)
     
-    def read_barcode(self, image_path):
-    # Load image
+    def read_barcode(self, image_path) -> list[BarcodeSchema]:
+
+        # Load image
         image = cv2.imread(image_path)
         
         # Decode barcodes
         barcodes = pyzbar.decode(image)
         
+        barcode_schemas = []
         for barcode in barcodes:
             # Extract barcode data and type
             barcode_data = barcode.data.decode('utf-8')
             barcode_type = barcode.type
             
-            print(f"Found {barcode_type} barcode: {barcode_data}")
-            
-            # Get barcode coordinates
-            (x, y, w, h) = barcode.rect
-            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            barcode_schemas.append(BarcodeSchema(barcode_type=barcode_type, value=barcode_data))
         
-        return barcodes
+        return barcode_schemas
