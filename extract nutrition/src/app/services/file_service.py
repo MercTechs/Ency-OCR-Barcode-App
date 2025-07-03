@@ -8,7 +8,7 @@ class FileService:
         # Generate a random file name
         file_extension = file.filename.split(".")[-1]
         file_name = f"{uuid.uuid4()}.{file_extension}"
-        media_dir = "media"
+        media_dir = "src/media"
         file_path = os.path.join(media_dir, file_name)
 
         os.makedirs(media_dir, exist_ok=True)
