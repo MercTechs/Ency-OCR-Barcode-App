@@ -1,1 +1,0 @@
-# This package is intended to store reusable constants, enums, and other shared values.
