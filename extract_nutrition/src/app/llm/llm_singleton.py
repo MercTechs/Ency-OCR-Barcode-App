@@ -26,16 +26,20 @@ class LLMSingleton:
             raise ValueError("LLM_MODEL_PATH environment variable not set")
         self.llm = Llama(
             model_path=model_path,
-            n_ctx=4096,
-            n_gpu_layers=33,
+            n_ctx=8192,
+            n_gpu_layers=35,
+            verbose=False,
+            chat_format="llama-3",
         )
         LLMSingleton.__instance = self
 
     def extract_nutrition(self, ocr_text):
         prompt = create_extract_nutrition_prompt(ocr_text)
+        print(ocr_text)
         output = self.llm.create_chat_completion(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=2048,
+            temperature=0.1,
         )
         return output["choices"][0]["message"]["content"]
 
