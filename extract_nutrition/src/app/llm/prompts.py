@@ -1,155 +1,211 @@
 def create_extract_nutrition_prompt(ocr_text: str) -> str:
-    return f"""
-Extract nutritional information from the nutrition facts label text below.
-Return the result as a JSON object with ALL these exact field names and NUMERIC VALUES ONLY (no units).
-For fields not found in the label, use null.
+   return f"""
+You are extracting nutritional information from a Vietnamese nutrition facts table.
 
-Required format (ALL fields must be included):
+CRITICAL TABLE STRUCTURE UNDERSTANDING:
+This appears to be a nutrition table with columns:
+- Thành phần dinh dưỡng (Nutrients) 
+- ĐV (Unit)
+- Hàm lượng (Value) - THIS IS THE MAIN VALUE COLUMN
+- TLTK (Source)
+
+EXTRACTION RULES:
+
+1. **FOCUS ON THE "Hàm lượng (Value)" COLUMN**: 
+   - This contains the actual nutritional values
+   - Ignore other numbers that might be reference codes or source indicators
+
+2. **UNIT CONVERSIONS** (CRITICAL):
+   - Energy: ALWAYS convert to kcal
+     * If value shows KJ (like "111 KJ"), convert: KJ ÷ 4.184 = kcal
+     * If value shows kcal (like "27 kcal"), use as-is
+   - Protein, Fat, Carbs, Fiber, Ash, Water: grams (g)
+   - Minerals: milligrams (mg) - keep as shown in table
+     * Copper (Đồng): if in μg, convert to mg (÷1000)
+     * Selenium (Selen): if in μg, convert to mg (÷1000)
+     * Manganese: use exact value as shown (e.g., 16.000 → 16.0)
+   - Vitamins: keep original units as specified in table
+
+3. **SPECIFIC VALUE MAPPINGS** (extract these exact patterns):
+   
+   **SPECIFIC ENERGY CONVERSION EXAMPLE:**
+   - If you see "Năng lượng (Energy) KCal 27" → nutrients.energy = 27
+   - If you see "Năng lượng (Energy) KJ 111" → nutrients.energy = 111 ÷ 4.184 = 26.5
+   - Always check the unit (KCal vs KJ) before extracting
+   - Nước (Water): Look for water content in grams
+   - Năng lượng (Energy): Look for energy in kcal or KJ
+   - Protein: Look for protein content in grams  
+   - Lipid (Fat): Look for fat content in grams
+   - Glucid (Carbohydrate): Look for carbohydrate in grams
+   - Celluloza (Fiber): Look for fiber in grams
+   - Tro (Ash): Look for ash content in grams
+
+   **MINERALS (EXACT VALUES FROM TABLE):**
+   - Calci (Calcium): mg - use exact value from Hàm lượng column
+   - Sắt (Iron): mg - use exact value 
+   - Magiê (Magnesium): mg - use exact value
+   - Mangan (Manganese): mg - use EXACT value as shown (e.g., if table shows "16.000", use 16.0)
+   - Phospho (Phosphorous): mg - use exact value
+   - Kali (Potassium): mg - use exact value  
+   - Natri (Sodium): mg - use exact value
+   - Kẽm (Zinc): mg - use exact value
+   - Đồng (Copper): if in μg, convert to mg (÷1000); if in mg, use as-is
+   - Selen (Selenium): if in μg, convert to mg (÷1000); if in mg, use as-is
+
+   **VITAMINS:**
+   - Vitamin C (Ascorbic acid): mg
+   - Vitamin B1 (Thiamine): mg
+   - Vitamin B2 (Riboflavin): mg
+   - Vitamin PP (Niacin): mg
+   - Vitamin B5 (Pantothenic acid): mg
+   - Vitamin B6 (Pyridoxine): mg
+   - Folat (Folate): μg
+   - Vitamin B9 (Folic acid): μg
+   - Vitamin H (Biotin): μg
+   - Vitamin B12: μg
+   - Vitamin A (Retinol): μg
+   - Vitamin D: μg
+   - Vitamin E: mg
+   - Vitamin K: μg
+   - Beta-caroten: μg
+   - Alpha-caroten: μg
+   - Beta-cryptoxanthin: μg
+
+   **AMINO ACIDS (all in mg):**
+   - Lysin, Methionin, Tryptophan, Phenylalanin, Threonin, Valin, Leucin, Isoleucin, Arginin, Histidin, Cystin, Tyrosin, Alanin, Acid aspartic, Acid glutamic, Glycin, Prolin, Serin
+
+   **FATTY ACIDS:**
+   - Look for saturated, monounsaturated, polyunsaturated fatty acid values
+   - Specific fatty acids like C16:0, C18:0, C18:1, C18:2, etc.
+
+4. **VALUE VALIDATION**:
+   - If a value shows "-" or is blank, use null
+   - If a value is "0" or "0.00", use 0
+   - Convert units appropriately (μg to mg where needed)
+   - Manganese values in mg should be reasonable (typically 0.1-20 mg)
+
+5. **CONSERVATIVE EXTRACTION**:
+   - Only extract values you can clearly identify
+   - Do not guess or interpolate missing values
+   - Use null for unclear or missing nutrients
+   - Double-check that values make nutritional sense
+
+6. **DEBUG APPROACH**:
+   - Identify the table structure first
+   - Find the "Hàm lượng" (Value) column
+   - Extract values row by row, matching nutrient names to values
+   - Apply appropriate unit conversions
+
+Required JSON format (ALL fields must be included):
 {{
     "nutrients.energy": numeric_value_or_null,
-    "nutrients.water": null,
+    "nutrients.water": numeric_value_or_null,
     "nutrients.procnt": numeric_value_or_null,
     "nutrients.fat": numeric_value_or_null,
     "nutrients.chocdf": numeric_value_or_null,
     "nutrients.fibc": numeric_value_or_null,
-    "nutrients.ash": null,
+    "nutrients.ash": numeric_value_or_null,
     
     "minerals.ca": numeric_value_or_null,
-    "minerals.p": null,
+    "minerals.p": numeric_value_or_null,
     "minerals.fe": numeric_value_or_null,
-    "minerals.zn": null,
+    "minerals.zn": numeric_value_or_null,
     "minerals.na": numeric_value_or_null,
     "minerals.k": numeric_value_or_null,
-    "minerals.mg": null,
-    "minerals.mn": null,
-    "minerals.cu": null,
-    "minerals.se": null,
+    "minerals.mg": numeric_value_or_null,
+    "minerals.mn": numeric_value_or_null,
+    "minerals.cu": numeric_value_or_null,
+    "minerals.se": numeric_value_or_null,
     
-    "vitamins.vitc": null,
-    "vitamins.thia": null,
-    "vitamins.ribf": null,
-    "vitamins.nia": null,
-    "vitamins.pantac": null,
-    "vitamins.vitb6": null,
-    "vitamins.fol": null,
-    "vitamins.folac": null,
-    "vitamins.biot": null,
-    "vitamins.vitb12": null,
-    "vitamins.retol": null,
-    "vitamins.vita": null,
+    "vitamins.vitc": numeric_value_or_null,
+    "vitamins.thia": numeric_value_or_null,
+    "vitamins.ribf": numeric_value_or_null,
+    "vitamins.nia": numeric_value_or_null,
+    "vitamins.pantac": numeric_value_or_null,
+    "vitamins.vitb6": numeric_value_or_null,
+    "vitamins.fol": numeric_value_or_null,
+    "vitamins.folac": numeric_value_or_null,
+    "vitamins.biot": numeric_value_or_null,
+    "vitamins.vitb12": numeric_value_or_null,
+    "vitamins.retol": numeric_value_or_null,
+    "vitamins.vita": numeric_value_or_null,
     "vitamins.vitd": numeric_value_or_null,
-    "vitamins.vite": null,
-    "vitamins.vitk": null,
-    "vitamins.cartb": null,
-    "vitamins.carta": null,
-    "vitamins.crypxb": null,
+    "vitamins.vite": numeric_value_or_null,
+    "vitamins.vitk": numeric_value_or_null,
+    "vitamins.cartb": numeric_value_or_null,
+    "vitamins.carta": numeric_value_or_null,
+    "vitamins.crypxb": numeric_value_or_null,
     
-    "amino_acids.lys": null,
-    "amino_acids.met": null,
-    "amino_acids.trp": null,
-    "amino_acids.phe": null,
-    "amino_acids.thr": null,
-    "amino_acids.val": null,
-    "amino_acids.leu": null,
-    "amino_acids.ile": null,
-    "amino_acids.arg": null,
-    "amino_acids.his": null,
-    "amino_acids.cys": null,
-    "amino_acids.tyr": null,
-    "amino_acids.ala": null,
-    "amino_acids.asp": null,
-    "amino_acids.glu": null,
-    "amino_acids.gly": null,
-    "amino_acids.pro": null,
-    "amino_acids.ser": null,
+    "amino_acids.lys": numeric_value_or_null,
+    "amino_acids.met": numeric_value_or_null,
+    "amino_acids.trp": numeric_value_or_null,
+    "amino_acids.phe": numeric_value_or_null,
+    "amino_acids.thr": numeric_value_or_null,
+    "amino_acids.val": numeric_value_or_null,
+    "amino_acids.leu": numeric_value_or_null,
+    "amino_acids.ile": numeric_value_or_null,
+    "amino_acids.arg": numeric_value_or_null,
+    "amino_acids.his": numeric_value_or_null,
+    "amino_acids.cys": numeric_value_or_null,
+    "amino_acids.tyr": numeric_value_or_null,
+    "amino_acids.ala": numeric_value_or_null,
+    "amino_acids.asp": numeric_value_or_null,
+    "amino_acids.glu": numeric_value_or_null,
+    "amino_acids.gly": numeric_value_or_null,
+    "amino_acids.pro": numeric_value_or_null,
+    "amino_acids.ser": numeric_value_or_null,
     
     "saturated_fatty_acids.sfa": numeric_value_or_null,
-    "saturated_fatty_acids.f16d0": null,
-    "saturated_fatty_acids.f17d0": null,
-    "saturated_fatty_acids.f18d0": null,
-    "saturated_fatty_acids.f20d0": null,
-    "saturated_fatty_acids.f22d0": null,
-    "saturated_fatty_acids.f24d0": null,
+    "saturated_fatty_acids.f16d0": numeric_value_or_null,
+    "saturated_fatty_acids.f17d0": numeric_value_or_null,
+    "saturated_fatty_acids.f18d0": numeric_value_or_null,
+    "saturated_fatty_acids.f20d0": numeric_value_or_null,
+    "saturated_fatty_acids.f22d0": numeric_value_or_null,
+    "saturated_fatty_acids.f24d0": numeric_value_or_null,
     
-    "mono_unsaturated_fatty_acids.mufa": null,
-    "mono_unsaturated_fatty_acids.f14d1": null,
-    "mono_unsaturated_fatty_acids.f16d1": null,
-    "mono_unsaturated_fatty_acids.f18d1": null,
+    "mono_unsaturated_fatty_acids.mufa": numeric_value_or_null,
+    "mono_unsaturated_fatty_acids.f14d1": numeric_value_or_null,
+    "mono_unsaturated_fatty_acids.f16d1": numeric_value_or_null,
+    "mono_unsaturated_fatty_acids.f18d1": numeric_value_or_null,
     
-    "poly_unsaturated_fatty_acids.pufa": null,
-    "poly_unsaturated_fatty_acids.f18d2": null,
-    "poly_unsaturated_fatty_acids.f18d3": null,
-    "poly_unsaturated_fatty_acids.f20d4": null,
-    "poly_unsaturated_fatty_acids.f20d5cn3": null,
-    "poly_unsaturated_fatty_acids.f22d6cn3": null,
+    "poly_unsaturated_fatty_acids.pufa": numeric_value_or_null,
+    "poly_unsaturated_fatty_acids.f18d2": numeric_value_or_null,
+    "poly_unsaturated_fatty_acids.f18d3": numeric_value_or_null,
+    "poly_unsaturated_fatty_acids.f20d4": numeric_value_or_null,
+    "poly_unsaturated_fatty_acids.f20d5cn3": numeric_value_or_null,
+    "poly_unsaturated_fatty_acids.f22d6cn3": numeric_value_or_null,
     
     "other_fatty_acid_properties.trans": numeric_value_or_null,
     "other_fatty_acid_properties.chol": numeric_value_or_null,
     
     "sugars.sugar": numeric_value_or_null,
-    "sugars.gals": null,
-    "sugars.mals": null,
-    "sugars.lacs": null,
-    "sugars.frus": null,
-    "sugars.glus": null,
-    "sugars.sucs": null,
+    "sugars.gals": numeric_value_or_null,
+    "sugars.mals": numeric_value_or_null,
+    "sugars.lacs": numeric_value_or_null,
+    "sugars.frus": numeric_value_or_null,
+    "sugars.glus": numeric_value_or_null,
+    "sugars.sucs": numeric_value_or_null,
     
-    "carotenoids.lycpn": null,
-    "carotenoids.lutnzea": null,
+    "carotenoids.lycpn": numeric_value_or_null,
+    "carotenoids.lutnzea": numeric_value_or_null,
     
-    "isoflavones.total_isoflavone": null,
-    "isoflavones.daidzein": null,
-    "isoflavones.genistein": null,
-    "isoflavones.glycetin": null,
+    "isoflavones.total_isoflavone": numeric_value_or_null,
+    "isoflavones.daidzein": numeric_value_or_null,
+    "isoflavones.genistein": numeric_value_or_null,
+    "isoflavones.glycetin": numeric_value_or_null,
     
-    "other_components.phytosterol": null,
-    "other_components.purine": null
+    "other_components.phytosterol": numeric_value_or_null,
+    "other_components.purine": numeric_value_or_null
 }}
 
-EXTRACTION RULES:
-1. OCR often reads 'g' as '9'. Fix these errors:
-   - "19" → extract as 1
-   - "29" → extract as 2  
-   - "39" → extract as 3
-   - "129" → extract as 12
-   - "169" → extract as 16
-   - "09" → extract as 0
-
-2. Unit conversions (extract number only, no units):
-   - Calories/Energy → convert to kcal (just the number)
-   - Protein, Fat, Carbs, Fiber, Sugars, Saturated Fat, Trans Fat → convert to grams (just the number)
-   - Calcium, Iron, Sodium, Potassium, Cholesterol → convert to mg (just the number)  
-   - Vitamin D → convert to mcg (just the number)
-
-3. Value extraction:
-   - Extract ONLY the numeric value, strip all units (g, mg, mcg, kcal, etc.)
-   - If value is "0g" or "0mg" → extract as 0
-   - If nutrient not shown → use null
-   - Ignore % Daily Value percentages
-
-4. Field mapping for extractable nutrients:
-   - "Calories" → nutrients.energy
-   - "Protein" → nutrients.procnt
-   - "Total Fat" → nutrients.fat
-   - "Total Carbohydrate" → nutrients.chocdf
-   - "Dietary Fiber" → nutrients.fibc
-   - "Calcium" → minerals.ca
-   - "Iron" → minerals.fe
-   - "Sodium" → minerals.na
-   - "Potassium" → minerals.k
-   - "Vitamin D" → vitamins.vitd
-   - "Saturated Fat" → saturated_fatty_acids.sfa
-   - "Trans Fat" → other_fatty_acid_properties.trans
-   - "Cholesterol" → other_fatty_acid_properties.chol
-   - "Total Sugars" → sugars.sugar
-
-5. IMPORTANT: You MUST include ALL fields in the response, even if they are null. Do not omit any fields.
-
-Only extract nutrients explicitly shown in the label. For all other fields, use null.
-
-Nutrition label text:
+OCR Text:
 \"\"\"
 {ocr_text}
 \"\"\"
-Return ONLY the flat JSON object. All required fields must be returned even if they're null or 0. No explanations.
+
+IMPORTANT: 
+- Extract values from the correct column (Hàm lượng/Value column)
+- Apply proper unit conversions
+- Use null for missing or unclear values
+- Return ONLY the JSON object
 """
