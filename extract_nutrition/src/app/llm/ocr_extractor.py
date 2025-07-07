@@ -1,28 +1,21 @@
 from llm.llm_singleton import LLMSingleton
-import easyocr
-from llm.llm_singleton import LLMSingleton
-from marker.converters.pdf import PdfConverter  # Change this
-from marker.converters.ocr import OCRConverter  # Change this
+from marker.converters.pdf import PdfConverter
+from marker.models import create_model_dict
+from marker.output import text_from_rendered
 
 class OCREngine:
     def __init__(self):
-        # Initialize with both English and Vietnamese
-        self.reader = easyocr.Reader(['en', 'vi'])  # Both English and Vietnamese
+        # Load marker-pdf models
+        self.models = create_model_dict()
+        self.pdf_converter = PdfConverter(
+            artifact_dict=self.models,
+        )
 
     def extract_text(self, img_path):
-        # Use EasyOCR to read the image
-        result = self.reader.readtext(img_path)
-        
-        # Extract text with confidence scores
-        extracted_text = []
-        for (bbox, text, confidence) in result:
-            if confidence > 0.3:  # Filter low confidence results
-                extracted_text.append(text)
-        
-        # Join all text
-        full_text = "\n".join(extracted_text)
+        # Use marker-pdf converter to read the image/PDF
+        rendered = self.pdf_converter(img_path)
+        full_text, _, images = text_from_rendered(rendered)
         return full_text
-    
     
 
 class NutritionFactExtractor:
