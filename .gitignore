@@ -9,4 +9,5 @@ wheels/
 # Virtual environments
 .venv
 src/media
+todo.txt
 test
