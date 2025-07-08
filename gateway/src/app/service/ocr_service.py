@@ -5,19 +5,17 @@ import logging
 import os
 from fastapi import UploadFile, HTTPException
 from typing import Dict, Any
+from config.api_config import APIConfig
 
 logger = logging.getLogger(__name__)
+apiConfig = APIConfig()
 
 class ImageProcessingService:
     def __init__(self):
-        # Đọc từ environment variables
-        self.host = os.getenv("NUTRITION_EXTRACTOR_HOST", "localhost")
-        self.port = os.getenv("NUTRITION_EXTRACTOR_PORT", "8000")
-        self.upload_image_base_url = f"http://{self.host}:{self.port}/api/v1/image"
-        self.ocr_base_url = f"http://{self.host}:{self.port}/api/v1/ocr"
+        self.upload_image_base_url = apiConfig.ocr_upload_img_api_url
+        self.ocr_base_url = apiConfig.ocr_extract_text_api_url
         self.timeout = 60.0
         
-    
     async def process_image_complete(self, file: UploadFile) -> Dict[str, Any]:
         try:
             # Bước 1: Upload image

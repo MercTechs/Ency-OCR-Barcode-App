@@ -2,12 +2,15 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import APIKeyHeader
 import os
+from config.api_config import APIConfig
 load_dotenv()
 
 app = FastAPI()
 
 # Get API key with validation
-SECRET_API_KEY = os.getenv("GATEWAY_API_KEY")
+apiConfig = APIConfig()
+
+SECRET_API_KEY = apiConfig.gateway_api_key
 if not SECRET_API_KEY:
     raise ValueError("API_KEY environment variable must be set")
 
